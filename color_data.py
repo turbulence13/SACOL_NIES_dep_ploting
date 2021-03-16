@@ -20,3 +20,5 @@ b_VFM = [255, 255, 0, 0, 110, 211, 0]
 _VFM_color = (np.concatenate([[r_VFM], [g_VFM], [b_VFM]]).T)/255
 
 custom = clrs.ListedColormap(_custom_data)
+dep = clrs.ListedColormap(_dep_ratio_color)
+VFM = clrs.ListedColormap(_VFM_color)
