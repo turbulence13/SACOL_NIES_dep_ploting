@@ -493,14 +493,6 @@ for num in process_list:
                           height_area=[0, 5], calibration=cal_dic[num], horizontal=[0, 0.1])
 '''
 
-'''
-231
-234
-132
-233
-236
-'''
-
 for num in compare_list:
     path_plot_dir = pathfig + num + '_satellite'
     if not os.path.exists(path_plot_dir):
@@ -523,31 +515,6 @@ plt.close()
 l_Rdd_dic['Dp532'].values[l_Rdd_dic['Dp532'].values < 0] = 0
 l_Rdd_dic['Dp532'].values[l_Rdd_dic['Dp532'].values > 1] = 1
 print(l_Rdd_dic['Dp532'])
-plot_by_height(l_Rdd_dic['Dp532'].iloc[:, 80])'''
+plot_by_height(l_Rdd_dic['Dp532'].iloc[:, 80])
 
-'''
-        sns.heatmap(Rddata_dic['It1064'], vmax=1.0, vmin=0.0, cmap='rainbow', ax=ax_dic['It1064'])
-        ax_dic['It1064'].invert_yaxis()
-        ax_dic['It1064'].set_yticks(np.linspace(0, 6, 4))
-        ax_dic['It1064'].set_xlabel('Time')
-
-        for keys in Rddata_dic:
-            sns.set_style()
-
-            sns.heatmap(Rddata_dic[keys], vmax=0.4, vmin=0.0, cmap='rainbow', ax=ax_dic[keys])
-            ax_dic[keys].invert_yaxis()
-            ax_dic[keys].set_yticks([0.0, 6.0])
-            ax_dic[keys].set_xlabel('Time')
-
-            print(keys)
-            #plt.savefig(f_name+'_'+keys+'.png', dpi=300)
-            plt.show()
-
-        x_range = np.linspace(0, 255, 256)
-        r_f = np.interp(x_range, [0, 1, 50, 150, 200, 255], [255, 255, 0, 10, 255, 255])
-        g_f = np.interp(x_range, [0, 1, 50, 100, 200, 255], [255, 255, 0, 255, 255, 0])
-        b_f = np.interp(x_range, [0, 100, 150, 255], [255, 255, 10, 0])
-        cus_rgb = (np.concatenate([[r_f], [g_f], [b_f]]).T)/255
-
-        print(cus_rgb)
 '''
