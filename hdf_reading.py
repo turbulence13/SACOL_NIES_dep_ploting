@@ -109,7 +109,6 @@ def L1_Reading(fpath):
             target_rows.append(False)
         distance_list.append(distance)
 
-    kernel = []
     aPer532 = np.array(sd_obj.select('Perpendicular_Attenuated_Backscatter_532').get())
     Per532 = cv2.blur(aPer532, (1, 15))
     Per532[Per532 < 0] = 0
@@ -125,8 +124,6 @@ def L1_Reading(fpath):
     Dep532[Dep532 > 1] = np.nan
     Data_dic = {}
     Data_dic['Tol532'] = Tol532
-    # Data_dic['Per532'] = Per532
-    # Data_dic['Par532'] = Par532
     Data_dic['Dep532'] = Dep532
     Data_meta = {
         'route': L_route,
@@ -146,59 +143,66 @@ def L1_Reading(fpath):
 
 def L1_VFM_proccess(f_path, vfm_path):
     print('hi')
-    L1_dic, L1_meta = L1_Reading(f_path)
-    VFM_dic, VFM_meta = L2_VFM_Reading(vfm_path)
-    L1_frame_dic = {}
-    clear_L1_Data = {}
-    target_VFM = {}
-    target_L1 = {}
-    target_route = VFM_meta['route'][VFM_meta['target rows']]
-    if target_route[0][0] < target_route[-1][0]:
-        loc_range = [target_route[0][0], target_route[-1][0]]
-    else:
-        loc_range = [target_route[-1][0], target_route[0][0]]
-    del target_route
-    ttt = (loc_range[0] <= L1_meta['Lats']) & (loc_range[1] >= L1_meta['Lats'])
-    fff = ttt.copy()
-    for i in range(len(ttt)):
-        if ttt[i][0]:
-            fff[i + 14][0] = True
-    for key in L1_dic:
-        target_L1[key] = L1_dic[key][fff.T[0]]
-    for key in VFM_dic:
-        target_VFM[key] = VFM_dic[key][VFM_meta['target rows VFM']]
+    if os.path.exists(f_path) & os.path.exists(vfm_path):
+        L1_dic, L1_meta = L1_Reading(f_path)
+        VFM_dic, VFM_meta = L2_VFM_Reading(vfm_path)
+        L1_frame_dic = {}
+        clear_L1_Data = {}
+        target_VFM = {}
+        target_L1 = {}
+        target_route = VFM_meta['route'][VFM_meta['target rows']]
 
-    target_route = np.array(L1_meta['route'])[fff.T[0]]
-    target_distance = np.array(L1_meta['distance'])[fff.T[0]]
-    target_surface = np.array(L1_meta['surface'])[fff.T[0]]
-    min_point = np.where(target_distance == L1_meta['min distance'])[0][0]
-    cloud_status = []
-    target_route_str = []
-    for i in range(target_route.shape[0]):
-        target_route_str.append(str(format(target_route[i][0], '.2f')) + '\n' + str(format(target_route[i][1], '.2f')))
+        if len(target_route) is not 0:
+            if target_route[0][0] < target_route[-1][0]:
+                loc_range = [target_route[0][0], target_route[-1][0]]
+            else:
+                loc_range = [target_route[-1][0], target_route[0][0]]
+            del target_route
+            ttt = (loc_range[0] <= L1_meta['Lats']) & (loc_range[1] >= L1_meta['Lats'])
+            fff = ttt.copy()
+            for i in range(len(ttt)):
+                if ttt[i][0]:
+                    fff[i + 14][0] = True
+            for key in L1_dic:
+                target_L1[key] = L1_dic[key][fff.T[0]]
+            for key in VFM_dic:
+                target_VFM[key] = VFM_dic[key][VFM_meta['target rows VFM']]
 
-    for j in target_VFM['VFM']:
-        if 2 in target_VFM['VFM'][j]:
-            cloud_status.append(False)
+            target_route = np.array(L1_meta['route'])[fff.T[0]]
+            target_distance = np.array(L1_meta['distance'])[fff.T[0]]
+            target_surface = np.array(L1_meta['surface'])[fff.T[0]]
+            min_point = np.where(target_distance == L1_meta['min distance'])[0][0]
+            cloud_status = []
+            target_route_str = []
+            for i in range(target_route.shape[0]):
+                target_route_str.append(
+                    str(format(target_route[i][0], '.2f')) + '\n' + str(format(target_route[i][1], '.2f')))
+
+            for j in target_VFM['VFM']:
+                if 2 in target_VFM['VFM'][j]:
+                    cloud_status.append(False)
+                else:
+                    cloud_status.append(True)
+
+            for keys in target_L1:
+                L1_frame_dic[keys] = pd.DataFrame(target_L1[keys], columns=L1_meta['Height'])
+                clear_L1_Data[keys] = pd.DataFrame(target_L1[keys][cloud_status], columns=L1_meta['Height'])
+
+            '''    VFM_frame = pd.DataFrame(target_VFM['VFM'],
+                                     columns=L1_meta['Height'],
+                                     index=target_distance)'''
+            Avg_Rd = {}
+            for keys in L1_frame_dic:
+                Avg_Rd[keys] = np.nanmean(L1_frame_dic[keys].values, axis=0)
+                Avg_Rd[keys] = mean_proccess.mean5_3(Avg_Rd[keys], 5)
+            clr_Avg_Rd = {}
+            for keys in clear_L1_Data:
+                clr_Avg_Rd[keys] = np.nanmean(clear_L1_Data[keys].values, axis=0)
+                clr_Avg_Rd[keys] = mean_proccess.mean5_3(clr_Avg_Rd[keys], 5)
+            return Avg_Rd['Dep532'], clr_Avg_Rd['Dep532'], L1_meta['Height'], L1_meta['min distance'], \
+                   target_L1['Dep532'], target_L1['Tol532'], target_route_str, target_surface, min_point
+
         else:
-            cloud_status.append(True)
-
-    for keys in target_L1:
-        L1_frame_dic[keys] = pd.DataFrame(target_L1[keys], columns=L1_meta['Height'])
-        clear_L1_Data[keys] = pd.DataFrame(target_L1[keys][cloud_status], columns=L1_meta['Height'])
-
-    '''    VFM_frame = pd.DataFrame(target_VFM['VFM'],
-                             columns=L1_meta['Height'],
-                             index=target_distance)'''
-    Avg_Rd = {}
-    for keys in L1_frame_dic:
-        Avg_Rd[keys] = np.nanmean(L1_frame_dic[keys].values, axis=0)
-        Avg_Rd[keys] = mean_proccess.mean5_3(Avg_Rd[keys], 5)
-
-    clr_Avg_Rd = {}
-    for keys in clear_L1_Data:
-        clr_Avg_Rd[keys] = np.nanmean(clear_L1_Data[keys].values, axis=0)
-        clr_Avg_Rd[keys] = mean_proccess.mean5_3(clr_Avg_Rd[keys], 5)
-
-    return Avg_Rd['Dep532'], clr_Avg_Rd['Dep532'], L1_meta['Height'], L1_meta['min distance'], \
-           target_L1['Dep532'], target_L1['Tol532'], target_route_str, target_surface, min_point
+            return None
+    else:
+        return None

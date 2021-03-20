@@ -95,19 +95,21 @@ def date_L1_reading(date, path, path_vfm):
         fname = re.match('^CAL_LID_L1-Standard-V4-10\.' + t_date + '.*\.hdf$', files)
         if fname is not None:
             vfm_files = path_vfm + 'CAL_LID_L2_VFM-Standard-V4-20' + files[25:]
-            Dp_height, Dp_height_clear, Data_height, min_distance, \
-            Dep532_array, Tol532_array, target_route, target_surface, min_point = hr.L1_VFM_proccess(files, vfm_files)
-            # Data_mean = np.nanmean(Data_dic['Dep532'], axis=0)
-            target_surface = target_surface
-            height = Data_height - 1.961
-            # height_vfm = Data_height[(Data_height >= -0.5) & (Data_height <= 30.1)]
-            Dp_Data_height = pd.DataFrame(Dp_height, index=height)
-            Dep532_frame = pd.DataFrame(Dep532_array, columns=Data_height, index=target_route)
 
-            print(min_point)
-            Tol532_frame = pd.DataFrame(Tol532_array, columns=Data_height, index=target_route)
-
-    return Dp_Data_height, min_distance, Tol532_frame, Dep532_frame, target_surface, min_point
+            if hr.L1_VFM_proccess(files, vfm_files) is not None:
+                Dp_height, Dp_height_clear, Data_height, min_distance, \
+                Dep532_array, Tol532_array, target_route, target_surface, min_point = hr.L1_VFM_proccess(files, vfm_files)
+                # Data_mean = np.nanmean(Data_dic['Dep532'], axis=0)
+                target_surface = target_surface
+                height = Data_height - 1.961
+                # height_vfm = Data_height[(Data_height >= -0.5) & (Data_height <= 30.1)]
+                Dp_Data_height = pd.DataFrame(Dp_height, index=height)
+                Dep532_frame = pd.DataFrame(Dep532_array, columns=Data_height, index=target_route)
+                print(min_point)
+                Tol532_frame = pd.DataFrame(Tol532_array, columns=Data_height, index=target_route)
+                return Dp_Data_height, min_distance, Tol532_frame, Dep532_frame, target_surface, min_point
+            else:
+                return None
 
 
 def target_average_dp(date, path, time_area, height_area):
@@ -273,13 +275,15 @@ def combine_proccess(date, path_SACOL, path_L1, path_vfm, path_f, time_area=None
     Sacol_data = date_files_reading(date, path_SACOL)
     Sacol_data['Dp532'].values[Sacol_data['Dp532'].values < 0] = np.nan
     Sacol_data['Dp532'].values[Sacol_data['Dp532'].values > 1] = np.nan
-    L1_data, min_distance, Dep532_frame, VFM_frame, target_surface, min_point = date_L1_reading(date, path_L1, path_vfm)
-    Dp_height, avgdata = dep_by_height(Sacol_data['Dp532'].iloc[:, time_area[0]:time_area[1]],
-                                       meantime=3, top=height_area[1], bottum=height_area[0])
-    combine_plot(Sacol_data, Dep532_frame, VFM_frame, Dp_height, L1_data, target_surface, min_point, min_distance,
-                 time_area, height_area, calibration, horizontal, )
-    plt.savefig(combine_path, dpi=120, format='png')
-    plt.close()
+
+    if date_L1_reading(date, path_L1, path_vfm) is not None:
+        L1_data, min_distance, Dep532_frame, VFM_frame, target_surface, min_point = date_L1_reading(date, path_L1, path_vfm)
+        Dp_height, avgdata = dep_by_height(Sacol_data['Dp532'].iloc[:, time_area[0]:time_area[1]],
+                                           meantime=3, top=height_area[1], bottum=height_area[0])
+        combine_plot(Sacol_data, Dep532_frame, VFM_frame, Dp_height, L1_data, target_surface, min_point, min_distance,
+                     time_area, height_area, calibration, horizontal, )
+        plt.savefig(combine_path, dpi=120, format='png')
+        plt.close()
 
 
 def Satellite_compare(date, path_SACOL, path_L1, path_vfm, path_f, time_area=None,
@@ -461,14 +465,50 @@ cal_dic = {
     '5': 0.006568091719789208,
 }
 
-'''
 os.chdir(path1)
 all_file_list = os.listdir()
 for file in all_file_list:
+    path_all = pathfig + 'all/'
+    if not os.path.exists(path_all):
+        os.mkdir(path=path_all)
     if file[-4:] == '.dat':
         date = file[16:24]
-        Main_procces(date, path1, pathfig+'ALL')
-'''
+        i_date = int(date)
+        t_date = date[0:4] + '-' + date[4:6] + '-' + date[6:8]
+        os.chdir(path_L1)
+        L1_list = os.listdir()
+        for files in L1_list:
+            fname = re.match('^CAL_LID_L1-Standard-V4-10\.' + t_date + '.*\.hdf$', files)
+            if fname is not None:
+                print(files[45:47])
+                t_area = [37, 43]
+                if files[45:47] =='ZD':
+                    t_area = [37, 43]
+
+                elif files[45:47] =='ZN':
+                    t_area = [112, 118]
+
+                if (i_date >= 20181100) & (i_date < 20191023):
+                    date_case = '1'
+                elif (i_date >= 20191023) & (i_date < 20191029):
+                    date_case = '2'
+                elif (i_date >= 20191029) & (i_date < 20200427):
+                    date_case = '3'
+                elif (i_date >= 20200427) & (i_date < 20200516):
+                    date_case = '4'
+                elif (i_date >= 20200516) & (i_date < 20220101):
+                    date_case = '5'
+                else:
+                    date_case = '0'
+
+                path_plot_dir = path_all + date_case
+                if not os.path.exists(path_plot_dir):
+                    os.mkdir(path=path_plot_dir)
+                print(date_case)
+                print(i_date)
+                combine_proccess(date, path1, path_L1, path_vfm, path_plot_dir, time_area=t_area,
+                                 height_area=[0, 8], calibration=cal_dic[date_case], horizontal=[0.0, 0.4])
+
 
 '''
 for num in process_list:
@@ -491,7 +531,7 @@ for num in process_list:
     for key in cal_main_dic[num]:
         Calibrate_procces(key, path1, path_plot_dir, time_area=cal_main_dic[num][key][0],
                           height_area=[0, 5], calibration=cal_dic[num], horizontal=[0, 0.1])
-'''
+
 
 for num in compare_list:
     path_plot_dir = pathfig + num + '_satellite'
@@ -503,7 +543,7 @@ for num in compare_list:
                          height_area=satel_main_dic[num][key][1], calibration=None, horizontal=[0.0, 0.4])
 
 print(cal_dic)
-'''
+
 Dp_height, avgdata = dep_by_height(Rddata_dic['Dp532'].loc['12:00':'17:00'], meantime=1)
 print(avgdata)
 
