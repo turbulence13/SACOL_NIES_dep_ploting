@@ -222,7 +222,7 @@ def combine_plot(Sacol_data, Dep532, VFM, Dp_height, L1_data, target_surface, mi
     l_Dep532 = l_Dep532.iloc[::-1]
     sns.heatmap(l_Dep532, vmin=0, vmax=0.008, cmap=clrd.custom, ax=ax4, xticklabels=l_Dep532.shape[1] // 2)
     ax4.invert_yaxis()
-    surface_frame = pd.DataFrame(target_surface * 30)
+    surface_frame = pd.DataFrame(target_surface * 100/3+3)
     ax4.set_yticks(y2_ticks)
     ax4.set_yticklabels(y_label, rotation=0)
     ax4.yaxis.set_minor_locator(y2_minorlocator)
@@ -271,6 +271,7 @@ def combine_proccess(date, path_SACOL, path_L1, path_vfm, path_f, time_area=None
     if not os.path.exists(path_f + '/combine/'):
         os.mkdir(path=path_f + '/combine/')
     combine_path = path_f + '/combine/' + date + '.png'
+    combine_path_eps = path_f + '/combine/' + date + '.eps'
     path_L1 = path_L1
     Sacol_data = date_files_reading(date, path_SACOL)
     Sacol_data['Dp532'].values[Sacol_data['Dp532'].values < 0] = np.nan
@@ -282,7 +283,8 @@ def combine_proccess(date, path_SACOL, path_L1, path_vfm, path_f, time_area=None
                                            meantime=3, top=height_area[1], bottum=height_area[0])
         combine_plot(Sacol_data, Dep532_frame, VFM_frame, Dp_height, L1_data, target_surface, min_point, min_distance,
                      time_area, height_area, calibration, horizontal, )
-        plt.savefig(combine_path, dpi=120, format='png')
+        plt.savefig(combine_path, dpi=120) #png
+        #plt.savefig(combine_path_eps, dpi=120) #eps
         plt.close()
 
 
@@ -533,6 +535,8 @@ for num in process_list:
                           height_area=[0, 5], calibration=cal_dic[num], horizontal=[0, 0.1])
 
 
+'''
+
 for num in compare_list:
     path_plot_dir = pathfig + num + '_satellite'
     if not os.path.exists(path_plot_dir):
@@ -541,6 +545,8 @@ for num in compare_list:
     for key in satel_main_dic[num]:
         combine_proccess(key, path1, path_L1, path_vfm, path_plot_dir, time_area=satel_main_dic[num][key][0],
                          height_area=satel_main_dic[num][key][1], calibration=None, horizontal=[0.0, 0.4])
+
+'''
 
 print(cal_dic)
 

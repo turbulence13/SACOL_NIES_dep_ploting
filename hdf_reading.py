@@ -109,19 +109,23 @@ def L1_Reading(fpath):
             target_rows.append(False)
         distance_list.append(distance)
 
-    aPer532 = np.array(sd_obj.select('Perpendicular_Attenuated_Backscatter_532').get())
-    Per532 = cv2.blur(aPer532, (1, 15))
+    Per532 = np.array(sd_obj.select('Perpendicular_Attenuated_Backscatter_532').get())
+    Per532 = cv2.GaussianBlur(Per532, (3, 11), 8)
+
     Per532[Per532 < 0] = 0
-    aTol532 = np.array(sd_obj.select('Total_Attenuated_Backscatter_532').get())
-    Tol532 = cv2.blur(aTol532, (1, 15))
+    Tol532 = np.array(sd_obj.select('Total_Attenuated_Backscatter_532').get())
+    Tol532 = cv2.GaussianBlur(Tol532, (3, 11), 8)
+
     Tol532[Tol532 < 0] = 0
-    aPar532 = Tol532 - Per532
-    Par532 = cv2.blur(aPar532, (1, 15))
+    Par532 = Tol532 - Per532
+
     # proccess Dep data
     Dep532 = np.true_divide(Per532, Par532)
-    Dep532[Par532 <= 0.0003] = np.nan
+    Dep532[Par532 <= 0.0003] = 0
     Dep532[Par532 <= 0.0000] = 0
-    Dep532[Dep532 > 1] = np.nan
+    Dep532[Dep532 > 1] = 0
+    Dep532 = cv2.blur(Dep532, (3, 11))
+
     Data_dic = {}
     Data_dic['Tol532'] = Tol532
     Data_dic['Dep532'] = Dep532
