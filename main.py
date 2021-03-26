@@ -131,7 +131,7 @@ def combine_plot(Sacol_data, Dep532, VFM, Dp_height, L1_data, target_surface, mi
     y3_minorlocator = AutoMinorLocator(n=2)
     y_ticks = np.linspace(0, 1500, 4)
     x_ticks = np.linspace(0, 144, 7)
-    y2_ticks = np.linspace(0, Dep532.shape[0], 4)
+
     y_label = ('0.0', '3.0', '6.0', '9.0')
     x_label = ('00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00')
     height_c = height_area.copy()
@@ -220,6 +220,7 @@ def combine_plot(Sacol_data, Dep532, VFM, Dp_height, L1_data, target_surface, mi
 
     l_Dep532 = Dep532.T.loc[(Dep532.T.index < 9) & (Dep532.T.index > 0)]
     l_Dep532 = l_Dep532.iloc[::-1]
+    y2_ticks = np.linspace(0, l_Dep532.shape[0], 4)
     sns.heatmap(l_Dep532, vmin=0, vmax=0.008, cmap=clrd.custom, ax=ax4, xticklabels=l_Dep532.shape[1] // 2)
     ax4.invert_yaxis()
     surface_frame = pd.DataFrame(target_surface * 100/3+3)
