@@ -110,25 +110,29 @@ def L1_Reading(fpath):
         distance_list.append(distance)
 
     Per532 = np.array(sd_obj.select('Perpendicular_Attenuated_Backscatter_532').get())
-    Per532 = cv2.GaussianBlur(Per532, (3, 11), 8)
+    Per532 = cv2.blur(Per532, (3, 3))
+    #Per532 = cv2.medianBlur(Per532, 3)
 
     Per532[Per532 < 0] = 0
     Tol532 = np.array(sd_obj.select('Total_Attenuated_Backscatter_532').get())
-    Tol532 = cv2.GaussianBlur(Tol532, (3, 11), 8)
+    Tol532 = cv2.blur(Tol532, (3, 3))
+    #Tol532 = cv2.medianBlur(Tol532, 3)
 
     Tol532[Tol532 < 0] = 0
     Par532 = Tol532 - Per532
 
     # proccess Dep data
     Dep532 = np.true_divide(Per532, Par532)
-    Dep532[Par532 <= 0.0003] = 0
+    Dep532[Par532 <= 0.0002] = 0
     Dep532[Par532 <= 0.0000] = 0
     Dep532[Dep532 > 1] = 0
-    Dep532 = cv2.blur(Dep532, (3, 11))
-
+    #Dep532 = cv2.GaussianBlur(Dep532, (15, 15),2)
+    Dep532 = sig.medfilt(Dep532, (1, 3))
+    Dep532 = cv2.blur(Dep532, (3, 3))
     Data_dic = {}
     Data_dic['Tol532'] = Tol532
     Data_dic['Dep532'] = Dep532
+    Data_dic['Per532'] = Per532
     Data_meta = {
         'route': L_route,
         'surface': surface,
@@ -156,7 +160,7 @@ def L1_VFM_proccess(f_path, vfm_path):
         target_L1 = {}
         target_route = VFM_meta['route'][VFM_meta['target rows']]
 
-        if len(target_route) is not 0:
+        if len(target_route) != 0:
             if target_route[0][0] < target_route[-1][0]:
                 loc_range = [target_route[0][0], target_route[-1][0]]
             else:

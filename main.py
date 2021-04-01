@@ -131,7 +131,6 @@ def combine_plot(Sacol_data, Dep532, VFM, Dp_height, L1_data, target_surface, mi
     y3_minorlocator = AutoMinorLocator(n=2)
     y_ticks = np.linspace(0, 1500, 4)
     x_ticks = np.linspace(0, 144, 7)
-
     y_label = ('0.0', '3.0', '6.0', '9.0')
     x_label = ('00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00')
     height_c = height_area.copy()
@@ -175,6 +174,7 @@ def combine_plot(Sacol_data, Dep532, VFM, Dp_height, L1_data, target_surface, mi
     ax2.set_ylabel('Height (AGL, km)')
 
     ax2.set_xticklabels(x_label, rotation=0)
+
     ax2.xaxis.set_minor_locator(x_minorlocator)
     ax2.yaxis.set_minor_locator(y1_minorlocator)
     allspines_set(ax2, width=1)  # 坐标轴框线
@@ -218,16 +218,16 @@ def combine_plot(Sacol_data, Dep532, VFM, Dp_height, L1_data, target_surface, mi
 
     ax4 = plt.subplot2grid((2, 50), (0, 19), colspan=18, rowspan=1)
 
+    surface_frame = pd.DataFrame(target_surface * 100/3+3)
     l_Dep532 = Dep532.T.loc[(Dep532.T.index < 9) & (Dep532.T.index > 0)]
     l_Dep532 = l_Dep532.iloc[::-1]
     y2_ticks = np.linspace(0, l_Dep532.shape[0], 4)
-    sns.heatmap(l_Dep532, vmin=0, vmax=0.008, cmap=clrd.custom, ax=ax4, xticklabels=l_Dep532.shape[1] // 2)
-    ax4.invert_yaxis()
-    surface_frame = pd.DataFrame(target_surface * 100/3+3)
+    im = ax4.imshow(l_Dep532, vmin=0, vmax=0.008, cmap=clrd.custom, aspect='auto', origin='lower')
+    plt.colorbar(im, ax=ax4)
     ax4.set_yticks(y2_ticks)
     ax4.set_yticklabels(y_label, rotation=0)
     ax4.yaxis.set_minor_locator(y2_minorlocator)
-    ax4.vlines(min_point, ymin=height_c[0], ymax=height_c[1], colors='black',
+    ax4.vlines(min_point, ymin=0, ymax=l_Dep532.shape[0]-5, colors='black',
                linestyles='dashed')
     ax4.tick_params(axis='both', labelsize=8)
     ax4.plot(surface_frame.index, surface_frame.values, color='black', linewidth=2)
@@ -242,13 +242,13 @@ def combine_plot(Sacol_data, Dep532, VFM, Dp_height, L1_data, target_surface, mi
     ax5 = plt.subplot2grid((2, 50), (1, 19), colspan=18, rowspan=1)
     l_VFM = VFM.T.loc[(VFM.T.index < 9) & (VFM.T.index > 0)]
     l_VFM = l_VFM.iloc[::-1]
-    sns.heatmap(l_VFM, vmax=0.5, cmap=clrd.custom, ax=ax5, xticklabels=l_VFM.shape[1] // 2)
-    ax5.invert_yaxis()
+    im = ax5.imshow(l_VFM, vmin=0, vmax=0.5, cmap=clrd.custom, aspect='auto', origin='lower')
+    plt.colorbar(im, ax=ax5)
     ax5.set_yticks(y2_ticks)
     ax5.set_yticklabels(y_label, rotation=0)
     ax5.set_xlabel('Lat | Lon')
     ax5.yaxis.set_minor_locator(y2_minorlocator)
-    ax5.vlines(min_point, ymin=height_c[0], ymax=height_c[1], colors='black',
+    ax5.vlines(min_point, ymin=0, ymax=l_VFM.shape[0]-5, colors='black',
                linestyles='dashed')
     ax5.plot(surface_frame.index, surface_frame.values, color='black', linewidth=2)
     ax5.fill_between(surface_frame.index, surface_frame.values.T[0], color='lightgrey')
@@ -376,9 +376,55 @@ def Calibrate_procces(date, path, pathf, time_area=None, height_area=None, calib
     plt.close()
 
 
+def all_combine(path1, pathfig, path_vfm):
+    os.chdir(path1)
+    all_file_list = os.listdir()
+    for file in all_file_list:
+        path_all = pathfig + 'all/'
+        if not os.path.exists(path_all):
+            os.mkdir(path=path_all)
+        if file[-4:] == '.dat':
+            date = file[16:24]
+            i_date = int(date)
+            t_date = date[0:4] + '-' + date[4:6] + '-' + date[6:8]
+            os.chdir(path_L1)
+            L1_list = os.listdir()
+            for files in L1_list:
+                fname = re.match('^CAL_LID_L1-Standard-V4-10\.' + t_date + '.*\.hdf$', files)
+                if fname is not None:
+                    print(files[45:47])
+                    t_area = [37, 43]
+                    if files[45:47] == 'ZD':
+                        t_area = [37, 43]
+
+                    elif files[45:47] == 'ZN':
+                        t_area = [112, 118]
+
+                    if (i_date >= 20181100) & (i_date < 20191023):
+                        date_case = '1'
+                    elif (i_date >= 20191023) & (i_date < 20191029):
+                        date_case = '2'
+                    elif (i_date >= 20191029) & (i_date < 20200427):
+                        date_case = '3'
+                    elif (i_date >= 20200427) & (i_date < 20200516):
+                        date_case = '4'
+                    elif (i_date >= 20200516) & (i_date < 20220101):
+                        date_case = '5'
+                    else:
+                        date_case = '0'
+
+                    path_plot_dir = path_all + date_case
+                    if not os.path.exists(path_plot_dir):
+                        os.mkdir(path=path_plot_dir)
+                    print(date_case)
+                    print(i_date)
+                    combine_proccess(date, path1, path_L1, path_vfm, path_plot_dir, time_area=t_area,
+                                     height_area=[0, 8], calibration=cal_dic[date_case], horizontal=[0.0, 0.4])
+
+
 # pathf = input('Target Folder Path:')
 path1 = 'E:/Datas/Atmospheric/Files Data/SACOL/NIESdat'  # 目标文件夹路径
-pathfig = 'E:/Datas/Atmospheric/Files Data/SACOL/Figure/'
+pathfig = 'E:/Datas/Atmospheric/Files Data/SACOL/new_Figure/'
 path_L1 = 'E:/Datas/Atmospheric/Files Data/SACOL/L1_data/'
 path_vfm = 'E:/Datas/Atmospheric/Files Data/SACOL/VFM_data/'
 
@@ -468,49 +514,8 @@ cal_dic = {
     '5': 0.006568091719789208,
 }
 
-os.chdir(path1)
-all_file_list = os.listdir()
-for file in all_file_list:
-    path_all = pathfig + 'all/'
-    if not os.path.exists(path_all):
-        os.mkdir(path=path_all)
-    if file[-4:] == '.dat':
-        date = file[16:24]
-        i_date = int(date)
-        t_date = date[0:4] + '-' + date[4:6] + '-' + date[6:8]
-        os.chdir(path_L1)
-        L1_list = os.listdir()
-        for files in L1_list:
-            fname = re.match('^CAL_LID_L1-Standard-V4-10\.' + t_date + '.*\.hdf$', files)
-            if fname is not None:
-                print(files[45:47])
-                t_area = [37, 43]
-                if files[45:47] =='ZD':
-                    t_area = [37, 43]
+all_combine(path1, pathfig, path_vfm)
 
-                elif files[45:47] =='ZN':
-                    t_area = [112, 118]
-
-                if (i_date >= 20181100) & (i_date < 20191023):
-                    date_case = '1'
-                elif (i_date >= 20191023) & (i_date < 20191029):
-                    date_case = '2'
-                elif (i_date >= 20191029) & (i_date < 20200427):
-                    date_case = '3'
-                elif (i_date >= 20200427) & (i_date < 20200516):
-                    date_case = '4'
-                elif (i_date >= 20200516) & (i_date < 20220101):
-                    date_case = '5'
-                else:
-                    date_case = '0'
-
-                path_plot_dir = path_all + date_case
-                if not os.path.exists(path_plot_dir):
-                    os.mkdir(path=path_plot_dir)
-                print(date_case)
-                print(i_date)
-                combine_proccess(date, path1, path_L1, path_vfm, path_plot_dir, time_area=t_area,
-                                 height_area=[0, 8], calibration=cal_dic[date_case], horizontal=[0.0, 0.4])
 
 
 '''
@@ -539,11 +544,12 @@ for num in process_list:
 '''
 
 for num in compare_list:
-    path_plot_dir = pathfig + num + '_satellite'
+    path_plot_dir = pathfig + num + '_33blurmedian'
     if not os.path.exists(path_plot_dir):
         os.mkdir(path=path_plot_dir)
 
     for key in satel_main_dic[num]:
+        print(key)
         combine_proccess(key, path1, path_L1, path_vfm, path_plot_dir, time_area=satel_main_dic[num][key][0],
                          height_area=satel_main_dic[num][key][1], calibration=None, horizontal=[0.0, 0.4])
 
