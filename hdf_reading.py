@@ -89,8 +89,10 @@ def L2_VFM_Reading(fpath):
 def L1_Reading(fpath):
     sd_obj = SD(fpath, SDC.READ)
     Vt_obj = HDF.HDF(fpath).vstart()
-    m_data = Vt_obj.attach('metadata').read()[0]
-    Height = np.array(m_data[-2])  # 583高度对应实际海拔
+    m_data = Vt_obj.attach('metadata')
+    m_data.setfields('Lidar_Data_Altitudes')
+    r_height = m_data.read()
+    Height = np.array(r_height[0][0])  # 583高度对应实际海拔
     Lats = sd_obj.select('Latitude').get()
     Lons = sd_obj.select('Longitude').get()
     L_route = np.concatenate([Lats.T, Lons.T]).T
@@ -103,12 +105,13 @@ def L1_Reading(fpath):
         distance = LonLat_Distance(location, LZU_LatLon)
         if distance < min_distance:
             min_distance = distance
-        if distance < 50:
+        if distance < 300:
             target_rows.append(True)
         else:
             target_rows.append(False)
         distance_list.append(distance)
 
+    print(len(target_rows))
     Per532 = np.array(sd_obj.select('Perpendicular_Attenuated_Backscatter_532').get())
     Per532 = cv2.blur(Per532, (3, 3))
     #Per532 = cv2.medianBlur(Per532, 3)
@@ -147,6 +150,53 @@ def L1_Reading(fpath):
     sd_obj.end()
     HDF.HDF(fpath).close()
     return Data_dic, Data_meta
+
+
+def L1_proccess(f_path):
+
+    L1_dic, L1_meta = L1_Reading(f_path)
+    L1_frame_dic = {}
+    target_L1 = {}
+    target_route = L1_meta['route'][L1_meta['target rows']]
+
+    if len(target_route) != 0:
+
+        if target_route[0][0] < target_route[-1][0]:
+            loc_range = [target_route[0][0], target_route[-1][0]]
+        else:
+            loc_range = [target_route[-1][0], target_route[0][0]]
+        del target_route
+
+        ttt = (loc_range[0] <= L1_meta['Lats']) & (loc_range[1] >= L1_meta['Lats'])
+        for key in L1_dic:
+            target_L1[key] = L1_dic[key][ttt.T[0]]
+        target_route = np.array(L1_meta['route'])[ttt.T[0]]
+        target_distance = np.array(L1_meta['distance'])[ttt.T[0]]
+        target_surface = np.array(L1_meta['surface'])[ttt.T[0]]
+        min_point = np.where(target_distance == L1_meta['min distance'])[0][0]
+        target_route_str = []
+        for i in range(target_route.shape[0]):
+            target_route_str.append(
+                str(format(target_route[i][0], '.2f')) + '\n' + str(format(target_route[i][1], '.2f')))
+        print(target_L1['Dep532'].shape)
+        print(L1_meta['Height'].shape)
+        for keys in target_L1:
+            L1_frame_dic[keys] = pd.DataFrame(target_L1[keys], columns=L1_meta['Height'])
+
+        '''    VFM_frame = pd.DataFrame(target_VFM['VFM'],
+                                 columns=L1_meta['Height'],
+                                 index=target_distance)'''
+        Avg_Rd = {}
+        for keys in L1_frame_dic:
+            Avg_Rd[keys] = np.nanmean(L1_frame_dic[keys].values, axis=0)
+            Avg_Rd[keys] = mean_proccess.mean5_3(Avg_Rd[keys], 5)
+
+        return Avg_Rd['Dep532'], L1_meta['Height'], L1_meta['min distance'], \
+               target_L1['Dep532'], target_L1['Tol532'], target_route_str, target_surface, min_point
+
+    else:
+        return None
+
 
 
 def L1_VFM_proccess(f_path, vfm_path):
