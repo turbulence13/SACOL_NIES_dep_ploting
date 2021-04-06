@@ -1,18 +1,13 @@
 from __future__ import division
 import math
-from pyhdf import HDF
-from pyhdf.SD import *
+from pyhdf import HDF, SD, VS
 import numpy as np
 import pandas as pd
 import re
-import scipy as sp
 import scipy.signal as sig
-from pyhdf.VS import *
 import cv2
 import os
 import sys
-import matplotlib.pyplot as plt
-import seaborn as sns
 import mean_proccess
 
 LZU_LatLon = [35.946, 104.137]
@@ -46,7 +41,7 @@ def Data_dic_select(dic, _min, _max):
 
 
 def L2_VFM_Reading(fpath):
-    sd_obj = SD(fpath, SDC.READ)
+    sd_obj = SD.SD(fpath, SD.SDC.READ)
     Vt_obj = HDF.HDF(fpath).vstart()
     m_data = Vt_obj.attach('metadata').read()[0]
     Height = np.array(m_data[-1])  # 583高度对应实际海拔
@@ -87,7 +82,7 @@ def L2_VFM_Reading(fpath):
 
 # 获取文件内数据字典
 def L1_Reading(fpath):
-    sd_obj = SD(fpath, SDC.READ)
+    sd_obj = SD.SD(fpath, SD.SDC.READ)
     Vt_obj = HDF.HDF(fpath).vstart()
     m_data = Vt_obj.attach('metadata')
     m_data.setfields('Lidar_Data_Altitudes')
@@ -114,11 +109,13 @@ def L1_Reading(fpath):
     print(len(target_rows))
     Per532 = np.array(sd_obj.select('Perpendicular_Attenuated_Backscatter_532').get())
     Per532 = cv2.blur(Per532, (3, 3))
+    Per532 = sig.medfilt(Per532, (1, 3))
     #Per532 = cv2.medianBlur(Per532, 3)
 
     Per532[Per532 < 0] = 0
     Tol532 = np.array(sd_obj.select('Total_Attenuated_Backscatter_532').get())
     Tol532 = cv2.blur(Tol532, (3, 3))
+    Tol532 = sig.medfilt(Tol532, (1, 3))
     #Tol532 = cv2.medianBlur(Tol532, 3)
 
     Tol532[Tol532 < 0] = 0
